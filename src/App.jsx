@@ -12,6 +12,7 @@ import useIsMobile from './utils/useIsMobile';
 
 import HorizontalLine from './components/horizontalLine';
 import CustomToolTip from './components/customToolTip';
+import CustomizedLabel from './components/customizedLabel';
 
 import { LineChart, Line, XAxis, YAxis, Tooltip } from 'recharts';
 
@@ -161,8 +162,11 @@ function App() {
             <h1 className='text-2xl md:text-3xl font-bold'>Forecast</h1>
             {forecastWeatherMap &&
               <div className='custom-scrollbar-x w-full max-w-4xl overflow-x-scroll py-4'>
-                <LineChart width={isMobile ? 2100 : 4100} height={isMobile ? 300 : 400} data={forecastWeatherMap}>
-                  <Line type="monotone" dataKey="temp" stroke="#000000" />
+                <LineChart width={isMobile ? 2100 : 4000} height={isMobile ? 300 : 400} data={forecastWeatherMap}>
+                  <Line
+                    type="monotone" dataKey="temp" stroke="#000000"
+                    label={<CustomizedLabel numLabels={forecastWeatherMap.length} />}
+                    />
                   <XAxis
                     dataKey="time"
                     tick={{ fontSize: isMobile ? 9 : 12 }}
