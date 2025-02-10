@@ -24,6 +24,7 @@ function App() {
     const [currentWeatherData, setCurrentWeatherData] = useState(null);
     // For keeping track of the time that the current weather data was fetched
     const [currentWeatherTime, setCurrentWeatherTime] = useState(null);
+    const [hourlyWeatherData, setHourlyWeatherData] = useState(null);
     const [forecastWeatherData, setForecastWeatherData] = useState(null);
 
     const isMobile = useIsMobile();
@@ -31,8 +32,8 @@ function App() {
 
     // Convert the forecast weather data into
   
-    const forecastWeatherMap = forecastWeatherData ?
-      forecastWeatherData.list.map((forecast) => {
+    const hourlyWeatherMap = hourlyWeatherData ?
+      hourlyWeatherData.list.map((forecast) => {
         return {
           time: formatDate(dateToUtc(forecast.dt_txt)),
           temp: forecast.main.temp,
@@ -44,7 +45,7 @@ function App() {
       })
     : null;
 
-    console.log("forecastWeatherMap", forecastWeatherMap);
+    console.log("hourlyWeatherMap", hourlyWeatherMap);
 
     useEffect(() => {
       // Check if geolocation is available in the browser
@@ -75,18 +76,16 @@ function App() {
               )
             }
 
-            // Forecast weather data comes from open-meteo api
-            if(!forecastWeatherData){
+            // hourly weather data comes from openweathermap
+            if(!hourlyWeatherData){
               console.log("fetching forecast data...");
               fetch(
                 `https://api.openweathermap.org/data/2.5/forecast?appid=${apiKeys.openWeather}&lat=${position.coords.latitude}&lon=${position.coords.longitude}&units=metric`
-
-                //`https://api.open-meteo.com/v1/forecast?latitude=${position.coords.latitude}&longitude=${position.coords.longitude}&daily=temperature_2m_max&daily=temperature_2m_min&forecast_days=8`
               )
                 .then((res) => res.json())
                 .then((data) => {
-                  setForecastWeatherData(data);
-                  console.log("Success fetching forecast data:", data);
+                  setHourlyWeatherData(data);
+                  console.log("Success fetching hourly data:", data);
                   
                   console.log("data.hourly", data.hourly)
                 })
@@ -95,6 +94,20 @@ function App() {
                 }
               )
             }
+
+            // 15 day forecast comes from visualcrossing
+            if(!forecastWeatherData) {
+              fetch(
+                `https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${position.coords.latitude},${position.coords.longitude}?key=${apiKeys.visualCrossing}`
+              )
+              .then((res) => res.json())
+              .then((data) => {
+                console.log('success fetching forecast data', data);
+
+                setForecastWeatherData(data);
+              })
+            }
+
 
           },
           (err) => {
@@ -109,50 +122,61 @@ function App() {
 
   return (
     <>
-      <div className='max-w-5xl mx-auto px-4 md:px-6 lg:px-8 flex flex-col items-center'>
-          {currentWeatherData && currentWeatherData.name &&
-            <div className='flex flex-col items-center pt-4 md:pt-8 pb-2 md:pb-4'>
-              <div>Your Location:</div>
-              <h1 className='text-3xl'>{currentWeatherData.name}</h1>
-              {location.latitude && location.longitude ? (
-                <p className='text-sm text-gray-700 mt-1'>
-                  Lat: {location.latitude.toFixed(1)}, Long: {location.longitude.toFixed(1)}
-                </p>
-              ) : (
-                <p>Loading location...</p>
-              )}
-                </div>
-          }
-
-          <HorizontalLine />
-          {/* NOW */}
-
-          <div className='flex flex-col items-center p-2'>
-            <h1 className='text-2xl md:text-3xl font-bold'>Now</h1>
-            <div>
-              {
-              currentWeatherTime &&
-                `${dateToWeekday(currentWeatherTime)} ${dateToTime(currentWeatherTime)}`
-              }
-            </div>
-            {currentWeatherData && currentWeatherData.weather && currentWeatherData.weather[0] &&
-              <div className='flex flex-col items-center'>
-                <div className='text-md md:text-xl'>{weatherName(currentWeatherData.weather[0].id)}</div>
-                <img
-                  className='w-24 h-24 md:w-32 md:h-32 -mt-2 -mb-4 md:-mt-6 md:-mb-8'
-                  src={`https://openweathermap.org/img/wn/${currentWeatherData.weather[0].icon}@2x.png`}
-                />
-                {currentWeatherData && currentWeatherData.main &&
-                  <>
-                    <div className='text-xl'>{currentWeatherData.main.temp.toFixed(1)}°C</div>
-                    <div>Humidity: {currentWeatherData.main.humidity}%</div>
-                    <div>Wind: {metersPerSecondToKmPerHour(currentWeatherData.wind.speed).toFixed(0)}km/h</div>
-                  </>
-                }
-
-
-
+      <div className='max-w-5xl mx-auto px-4 md:px-6 lg:px-8 flex flex-col items-center py-4 md:py-6 lg:py-8'>
+        
+        
+        <div className='flex w-full flex-row justify-between  '>
+          <div className='flex flex-col items-start p-2'>
+              <div className='flex flex-row'>
+                <div>
+                  {currentWeatherData &&
+                    <div className='flex flex-row'>
+                      <div className='text-2xl md:text-3xl font-bold'>{currentWeatherData.main.temp.toFixed(1)}</div>
+                      <div className='text-lg ml-2' >°C</div>
+                    </div>
+                  }
+                  <div>
+                    {
+                    currentWeatherTime &&
+                      `${dateToWeekday(currentWeatherTime)} ${dateToTime(currentWeatherTime)}`
+                    }
+                      </div>
+                  {currentWeatherData && currentWeatherData.weather && currentWeatherData.weather[0] &&
+                    <div className='flex flex-row items-start'>
+                      <div>
+                        <div className='text-sm'>{weatherName(currentWeatherData.weather[0].id)}</div>
+                        <img
+                          className='w-24 h-24 md:w-32 md:h-32 -mt-2 -mb-4 md:-mt-6 md:-mb-8'
+                          src={`https://openweathermap.org/img/wn/${currentWeatherData.weather[0].icon}@2x.png`}
+                        />
+                      </div>
+                    </div>
+                  }
               </div>
+
+
+              {currentWeatherData && currentWeatherData.main &&
+                    <div className='ml-6 mt-8'>
+                      <div className='text-sm'>Humidity: {currentWeatherData.main.humidity}%</div>
+                      <div className='text-sm'>Wind: {metersPerSecondToKmPerHour(currentWeatherData.wind.speed).toFixed(0)}km/h</div>
+                    </div>
+                  }
+              </div>
+
+            </div>
+
+            {currentWeatherData && currentWeatherData.name &&
+              <div className='flex flex-col items-end'>
+                <div>Your Location:</div>
+                <h1 className='text-3xl'>{currentWeatherData.name}</h1>
+                {location.latitude && location.longitude ? (
+                  <p className='text-sm text-gray-700 mt-1'>
+                    Lat: {location.latitude.toFixed(1)}, Long: {location.longitude.toFixed(1)}
+                  </p>
+                ) : (
+                  <p>Loading location...</p>
+                )}
+                  </div>
             }
           </div>
           <HorizontalLine />
@@ -160,12 +184,12 @@ function App() {
           {/* Forecast */}
           <div className='flex flex-col items-center p-2 w-full'>
             <h1 className='text-2xl md:text-3xl font-bold'>Forecast</h1>
-            {forecastWeatherMap &&
+            {hourlyWeatherMap &&
               <div className='custom-scrollbar-x w-full max-w-4xl overflow-x-scroll py-4'>
-                <LineChart width={isMobile ? 2100 : 4000} height={isMobile ? 300 : 400} data={forecastWeatherMap}>
+                <LineChart width={isMobile ? 2100 : 4000} height={isMobile ? 300 : 300} data={hourlyWeatherMap}>
                   <Line
                     type="monotone" dataKey="temp" stroke="#000000"
-                    label={<CustomizedLabel numLabels={forecastWeatherMap.length} />}
+                    label={<CustomizedLabel numLabels={hourlyWeatherMap.length} />}
                     />
                   <XAxis
                     dataKey="time"
