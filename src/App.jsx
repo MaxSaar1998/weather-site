@@ -13,8 +13,9 @@ import useIsMobile from './utils/useIsMobile';
 import HorizontalLine from './components/horizontalLine';
 import CustomToolTip from './components/customToolTip';
 import CustomizedLabel from './components/customizedLabel';
+import WeatherIcon from './components/weatherIcon';
 
-import { LineChart, Line, XAxis, YAxis, Tooltip } from 'recharts';
+import { AreaChart, LineChart, Line, XAxis, YAxis, Tooltip, Area } from 'recharts';
 
 
 function App() {
@@ -43,9 +44,27 @@ function App() {
           icon: forecast.weather[0].icon,
         };
       })
-    : null;
+      : null;
 
-    console.log("hourlyWeatherMap", hourlyWeatherMap);
+    
+    const newHourlyWeatherMap = [];
+    // Populate the newHourlyWeatherMap with the forecast weather data
+    if (forecastWeatherData) {
+      forecastWeatherData.days.forEach(day => {
+        day.hours.forEach(hour => {
+          newHourlyWeatherMap.push({
+            time: formatDate(new Date(hour.datetimeEpoch * 1000)),
+            temp: hour.temp,
+            icon: hour.icon,
+            weather: hour.conditions,
+          });
+        })
+      })
+    };
+
+    console.log('newHourlyWeatherMap', newHourlyWeatherMap);
+
+    //console.log("hourlyWeatherMap", hourlyWeatherMap);
 
     useEffect(() => {
       // Check if geolocation is available in the browser
@@ -98,7 +117,7 @@ function App() {
             // 15 day forecast comes from visualcrossing
             if(!forecastWeatherData) {
               fetch(
-                `https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${position.coords.latitude},${position.coords.longitude}?key=${apiKeys.visualCrossing}`
+                `https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${position.coords.latitude},${position.coords.longitude}?unitGroup=metric&key=${apiKeys.visualCrossing}`
               )
               .then((res) => res.json())
               .then((data) => {
@@ -182,10 +201,10 @@ function App() {
           <HorizontalLine />
 
           {/* Forecast */}
-          <div className='flex flex-col items-center p-2 w-full'>
+          <div className='flex flex-col items-center w-full custom-scrollbar-x overflow-x-scroll'>
             <h1 className='text-2xl md:text-3xl font-bold'>Forecast</h1>
             {hourlyWeatherMap &&
-              <div className='custom-scrollbar-x w-full max-w-4xl overflow-x-scroll py-4'>
+              <div className='w-full max-w-4xl py-4'>
                 <LineChart width={isMobile ? 2100 : 4000} height={isMobile ? 300 : 300} data={hourlyWeatherMap}>
                   <Line
                     type="monotone" dataKey="temp" stroke="#000000"
@@ -200,12 +219,59 @@ function App() {
                 </LineChart>
               </div>
             }
-            {/* TODO: add 5 days selector  */}
           </div>
-          
 
+          {/* New Forecast */}
+          <div className='flex flex-col items-center w-full custom-scrollbar-x overflow-x-scroll'>
+            <h1 className='text-2xl md:text-3xl font-bold'>New Forecast</h1>
+            {newHourlyWeatherMap &&
+              <div className='w-full max-w-4xl py-4'>
+              <AreaChart width={isMobile ? 2100 : 8000} height={isMobile ? 300 : 300} data={newHourlyWeatherMap}>
+                {/*<defs>
+                  <linearGradient id="colorTemp" x1="0" y1="1" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#8884d8" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                */}
+                {/*<Line
+                  type="monotone" dataKey="temp" stroke="#000000"
+                  label={<CustomizedLabel numLabels={newHourlyWeatherMap.length} />}
+                  />*/}
+                <XAxis
+                  dataKey="time"
+                  tick={{ fontSize: isMobile ? 9 : 12 }}
+                />
+                <YAxis />
+                <Tooltip content={<CustomToolTip />} />
+                <Area type="monotone" dataKey="temp" stroke="#8884d8" fillOpacity={1} fill="url(#colorTemp)" />
+
+              </AreaChart>
+            </div>
+            }
+          </div>
 
           <HorizontalLine />
+
+            {/* 8 Day list */}
+
+            {forecastWeatherData && forecastWeatherData.days &&
+              <div className='flex flex-row w-full custom-scrollbar-x overflow-x-auto pt-4 pb-8'>
+                {forecastWeatherData.days.slice(0, 15).map((element, index) => {
+                  // Render a weather card for each day
+                  return (
+                    <div className='px-2 py-1  rounded-md w-20 min-w-20 flex flex-col items-center mx-1' key={index}>
+                      {/* Hack to get date in local time instead of utc */}
+                      <div className='text-lg'>{dateToWeekday(new Date(element.datetime.replace(/-/g, "/")), true)}</div>
+                      <WeatherIcon iconName={element.icon} />
+                      <div className='text-sm'>H: {element.tempmax}°</div>
+                      <div className='text-sm text-gray-400 -mt-1'>L: {element.tempmin}°</div>
+                    </div>
+                  );
+                })}
+              </div>
+            }
+
           {error && <div className='text-red-500'>{error}</div>}
 
         </div>
