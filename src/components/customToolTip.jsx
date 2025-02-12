@@ -13,7 +13,7 @@ const customToolTip = ({ active, payload, label }) => {
                 className='w-24 h-24 -mt-6 -mb-6'
                 src={`https://openweathermap.org/img/wn/${payload[0].payload.icon}@2x.png`}
             />
-            <p className='text-md'>{payload[0].value.toFixed(1)}°C</p>
+            <p className='text-md'>{Math.round(payload[0].value)}°C</p>
             <p className='text-sm'>Humidity: {payload[0].payload.humidity}%</p>
             <p className='text-sm'>Wind: {
                 metersPerSecondToKmPerHour(payload[0].payload.wind).toFixed(1)

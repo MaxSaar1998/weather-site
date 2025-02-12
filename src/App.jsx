@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import './App.css'
 import apiKeys from '../apiKeys.json';
 
-import { dateToUtc } from './utils/dateToUtc';
 import { formatDate } from './utils/formatDate';
 import { dateToTime } from './utils/dateToTime';
 import { dateToWeekday } from './utils/dateToWeekday';
@@ -12,10 +11,9 @@ import useIsMobile from './utils/useIsMobile';
 
 import HorizontalLine from './components/horizontalLine';
 import CustomToolTip from './components/customToolTip';
-import CustomizedLabel from './components/customizedLabel';
 import WeatherIcon from './components/weatherIcon';
 
-import { AreaChart, LineChart, Line, XAxis, YAxis, Tooltip, Area } from 'recharts';
+import { AreaChart, XAxis, YAxis, Tooltip, Area } from 'recharts';
 
 
 function App() {
@@ -25,31 +23,19 @@ function App() {
     const [currentWeatherData, setCurrentWeatherData] = useState(null);
     // For keeping track of the time that the current weather data was fetched
     const [currentWeatherTime, setCurrentWeatherTime] = useState(null);
-    const [hourlyWeatherData, setHourlyWeatherData] = useState(null);
     const [forecastWeatherData, setForecastWeatherData] = useState(null);
+
+    const [timeOfForecastFetch, setTimeofForecastFetch] = useState(null);
 
     const isMobile = useIsMobile();
 
-
-    // Convert the forecast weather data into
-  
-    const hourlyWeatherMap = hourlyWeatherData ?
-      hourlyWeatherData.list.map((forecast) => {
-        return {
-          time: formatDate(dateToUtc(forecast.dt_txt)),
-          temp: forecast.main.temp,
-          humidity: forecast.main.humidity,
-          wind: forecast.wind.speed,
-          weather: weatherName(forecast.weather[0].id),
-          icon: forecast.weather[0].icon,
-        };
-      })
-      : null;
+    // nearestHour is used to get the current weather data out of the forecasted data
+    var nearestHour;
 
     
     const newHourlyWeatherMap = [];
     // Populate the newHourlyWeatherMap with the forecast weather data
-    if (forecastWeatherData) {
+    if (forecastWeatherData && forecastWeatherData.days) {
       forecastWeatherData.days.forEach(day => {
         day.hours.forEach(hour => {
           newHourlyWeatherMap.push({
@@ -60,11 +46,24 @@ function App() {
           });
         })
       })
+
+      if(timeOfForecastFetch) {
+        // Get the current weather by rounding the current time to the nearest hour and then finding it in the forecast
+        console.log('Timeofforecastfetch:' + timeOfForecastFetch);
+        const hours = timeOfForecastFetch.getHours();
+        const minutes = timeOfForecastFetch.getMinutes();
+
+        nearestHour = hours;
+        if(minutes >= 30) {
+          // Round up
+          nearestHour += 1;
+        }
+      }
+
     };
 
-    console.log('newHourlyWeatherMap', newHourlyWeatherMap);
 
-    //console.log("hourlyWeatherMap", hourlyWeatherMap);
+    console.log('newHourlyWeatherMap', newHourlyWeatherMap);
 
     useEffect(() => {
       // Check if geolocation is available in the browser
@@ -95,35 +94,18 @@ function App() {
               )
             }
 
-            // hourly weather data comes from openweathermap
-            if(!hourlyWeatherData){
-              console.log("fetching forecast data...");
-              fetch(
-                `https://api.openweathermap.org/data/2.5/forecast?appid=${apiKeys.openWeather}&lat=${position.coords.latitude}&lon=${position.coords.longitude}&units=metric`
-              )
-                .then((res) => res.json())
-                .then((data) => {
-                  setHourlyWeatherData(data);
-                  console.log("Success fetching hourly data:", data);
-                  
-                  console.log("data.hourly", data.hourly)
-                })
-                .catch((err) => {
-                  setError(`Error fetching forecast: ${err.message}`);
-                }
-              )
-            }
-
             // 15 day forecast comes from visualcrossing
             if(!forecastWeatherData) {
               fetch(
-                `https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${position.coords.latitude},${position.coords.longitude}?unitGroup=metric&key=${apiKeys.visualCrossing}`
+                `https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${position.coords.latitude},${position.coords.longitude}?unitGroup=metric&key=${apiKeys.visualCrossing}&cache=false`
               )
               .then((res) => res.json())
               .then((data) => {
+
                 console.log('success fetching forecast data', data);
 
                 setForecastWeatherData(data);
+                setTimeofForecastFetch(new Date());
               })
             }
 
@@ -148,9 +130,9 @@ function App() {
           <div className='flex flex-col items-start p-2'>
               <div className='flex flex-row'>
                 <div>
-                  {currentWeatherData &&
+                  {forecastWeatherData &&
                     <div className='flex flex-row'>
-                      <div className='text-2xl md:text-3xl font-bold'>{currentWeatherData.main.temp.toFixed(1)}</div>
+                      <div className='text-2xl md:text-3xl font-bold'>{Math.round(forecastWeatherData.days[0].hours[nearestHour].temp)}</div>
                       <div className='text-lg ml-2' >°C</div>
                     </div>
                   }
@@ -203,41 +185,9 @@ function App() {
           {/* Forecast */}
           <div className='flex flex-col items-center w-full custom-scrollbar-x overflow-x-scroll'>
             <h1 className='text-2xl md:text-3xl font-bold'>Forecast</h1>
-            {hourlyWeatherMap &&
-              <div className='w-full max-w-4xl py-4'>
-                <LineChart width={isMobile ? 2100 : 4000} height={isMobile ? 300 : 300} data={hourlyWeatherMap}>
-                  <Line
-                    type="monotone" dataKey="temp" stroke="#000000"
-                    label={<CustomizedLabel numLabels={hourlyWeatherMap.length} />}
-                    />
-                  <XAxis
-                    dataKey="time"
-                    tick={{ fontSize: isMobile ? 9 : 12 }}
-                  />
-                  <YAxis />
-                  <Tooltip content={<CustomToolTip />} />
-                </LineChart>
-              </div>
-            }
-          </div>
-
-          {/* New Forecast */}
-          <div className='flex flex-col items-center w-full custom-scrollbar-x overflow-x-scroll'>
-            <h1 className='text-2xl md:text-3xl font-bold'>New Forecast</h1>
             {newHourlyWeatherMap &&
               <div className='w-full max-w-4xl py-4'>
-              <AreaChart width={isMobile ? 2100 : 8000} height={isMobile ? 300 : 300} data={newHourlyWeatherMap}>
-                {/*<defs>
-                  <linearGradient id="colorTemp" x1="0" y1="1" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8}/>
-                    <stop offset="95%" stopColor="#8884d8" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                */}
-                {/*<Line
-                  type="monotone" dataKey="temp" stroke="#000000"
-                  label={<CustomizedLabel numLabels={newHourlyWeatherMap.length} />}
-                  />*/}
+              <AreaChart width={isMobile ? 5600 : 8000} height={isMobile ? 300 : 300} data={newHourlyWeatherMap}>
                 <XAxis
                   dataKey="time"
                   tick={{ fontSize: isMobile ? 9 : 12 }}
@@ -264,8 +214,8 @@ function App() {
                       {/* Hack to get date in local time instead of utc */}
                       <div className='text-lg'>{dateToWeekday(new Date(element.datetime.replace(/-/g, "/")), true)}</div>
                       <WeatherIcon iconName={element.icon} />
-                      <div className='text-sm'>H: {element.tempmax}°</div>
-                      <div className='text-sm text-gray-400 -mt-1'>L: {element.tempmin}°</div>
+                      <div className='text-sm'>H: {Math.round(element.tempmax)}°</div>
+                      <div className='text-sm text-gray-400 -mt-1'>L: {Math.round(element.tempmin)}°</div>
                     </div>
                   );
                 })}
