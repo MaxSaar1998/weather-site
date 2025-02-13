@@ -3,10 +3,7 @@ import './App.css'
 import apiKeys from '../apiKeys.json';
 
 import { formatDate } from './utils/formatDate';
-import { dateToTime } from './utils/dateToTime';
 import { dateToWeekday } from './utils/dateToWeekday';
-import { weatherName } from './utils/weatherName';
-import { metersPerSecondToKmPerHour} from './utils/metersPerSecondToKmPerHour';
 import useIsMobile from './utils/useIsMobile';
 
 import HorizontalLine from './components/horizontalLine';
@@ -20,10 +17,11 @@ function App() {
 
     const [location, setLocation] = useState({ latitude: null, longitude: null });
     const [error, setError] = useState(null);
-    const [currentWeatherData, setCurrentWeatherData] = useState(null);
     // For keeping track of the time that the current weather data was fetched
-    const [currentWeatherTime, setCurrentWeatherTime] = useState(null);
     const [forecastWeatherData, setForecastWeatherData] = useState(null);
+    const [address, setAddress] = useState(null);
+
+
 
     const [timeOfForecastFetch, setTimeofForecastFetch] = useState(null);
 
@@ -33,12 +31,12 @@ function App() {
     var nearestHour;
 
     
-    const newHourlyWeatherMap = [];
-    // Populate the newHourlyWeatherMap with the forecast weather data
+    const hourlyWeatherMap = [];
+    // Populate the hourlyWeatherMap with the forecast weather data
     if (forecastWeatherData && forecastWeatherData.days) {
       forecastWeatherData.days.forEach(day => {
         day.hours.forEach(hour => {
-          newHourlyWeatherMap.push({
+          hourlyWeatherMap.push({
             time: formatDate(new Date(hour.datetimeEpoch * 1000)),
             temp: hour.temp,
             icon: hour.icon,
@@ -49,7 +47,6 @@ function App() {
 
       if(timeOfForecastFetch) {
         // Get the current weather by rounding the current time to the nearest hour and then finding it in the forecast
-        console.log('Timeofforecastfetch:' + timeOfForecastFetch);
         const hours = timeOfForecastFetch.getHours();
         const minutes = timeOfForecastFetch.getMinutes();
 
@@ -63,7 +60,7 @@ function App() {
     };
 
 
-    console.log('newHourlyWeatherMap', newHourlyWeatherMap);
+    console.log('hourlyWeatherMap', hourlyWeatherMap);
 
     useEffect(() => {
       // Check if geolocation is available in the browser
@@ -75,24 +72,19 @@ function App() {
               longitude: position.coords.longitude,
             });
             // Now that we have the location, let's fetch the weather data
-            
-            // Currentweather data comes from api.openweathermap.org
-            if(!currentWeatherData) {
-              console.log("fetching weather data...");
-              fetch(
-                `https://api.openweathermap.org/data/2.5/weather?lat=${position.coords.latitude}&lon=${position.coords.longitude}&appid=${apiKeys.openWeather}&units=metric`
-              )
-                .then((res) => res.json())
-                .then((data) => {
-                  setCurrentWeatherData(data);
-                  setCurrentWeatherTime(new Date());
-                  console.log("Success fetching weather data:", data);
-                })
-                .catch((err) => {
-                  setError(`Error fetching weather: ${err.message}`);
-                }
-              )
-            }
+
+            // Use nominatim to get the closest city
+            fetch(
+              `https://nominatim.openstreetmap.org/reverse?lat=${position.coords.latitude}&lon=${position.coords.longitude}&format=json`
+            )
+              .then((res) => res.json())
+              .then((data) => {
+                console.log("Got data from nominatum", data);
+                setAddress(data.address);
+              })
+              .catch((error) => {
+                console.log("Error fetching from nominatim", error);
+              })
 
             // 15 day forecast comes from visualcrossing
             if(!forecastWeatherData) {
@@ -137,39 +129,23 @@ function App() {
                     </div>
                   }
                   <div>
-                    {
-                    currentWeatherTime &&
-                      `${dateToWeekday(currentWeatherTime)} ${dateToTime(currentWeatherTime)}`
-                    }
                       </div>
-                  {currentWeatherData && currentWeatherData.weather && currentWeatherData.weather[0] &&
                     <div className='flex flex-row items-start'>
+                    {address && address.town &&
+
                       <div>
-                        <div className='text-sm'>{weatherName(currentWeatherData.weather[0].id)}</div>
-                        <img
-                          className='w-24 h-24 md:w-32 md:h-32 -mt-2 -mb-4 md:-mt-6 md:-mb-8'
-                          src={`https://openweathermap.org/img/wn/${currentWeatherData.weather[0].icon}@2x.png`}
-                        />
+                        <div className='text-sm'>{address.town}, {address.state}</div>
                       </div>
+                    }
                     </div>
-                  }
               </div>
-
-
-              {currentWeatherData && currentWeatherData.main &&
-                    <div className='ml-6 mt-8'>
-                      <div className='text-sm'>Humidity: {currentWeatherData.main.humidity}%</div>
-                      <div className='text-sm'>Wind: {metersPerSecondToKmPerHour(currentWeatherData.wind.speed).toFixed(0)}km/h</div>
-                    </div>
-                  }
               </div>
 
             </div>
 
-            {currentWeatherData && currentWeatherData.name &&
               <div className='flex flex-col items-end'>
                 <div>Your Location:</div>
-                <h1 className='text-3xl'>{currentWeatherData.name}</h1>
+                <h1 className='text-3xl'>{}</h1>
                 {location.latitude && location.longitude ? (
                   <p className='text-sm text-gray-700 mt-1'>
                     Lat: {location.latitude.toFixed(1)}, Long: {location.longitude.toFixed(1)}
@@ -178,16 +154,15 @@ function App() {
                   <p>Loading location...</p>
                 )}
                   </div>
-            }
           </div>
           <HorizontalLine />
 
           {/* Forecast */}
           <div className='flex flex-col items-center w-full custom-scrollbar-x overflow-x-scroll'>
             <h1 className='text-2xl md:text-3xl font-bold'>Forecast</h1>
-            {newHourlyWeatherMap &&
+            {hourlyWeatherMap &&
               <div className='w-full max-w-4xl py-4'>
-              <AreaChart width={isMobile ? 5600 : 8000} height={isMobile ? 300 : 300} data={newHourlyWeatherMap}>
+              <AreaChart width={isMobile ? 5600 : 8000} height={isMobile ? 300 : 300} data={hourlyWeatherMap}>
                 <XAxis
                   dataKey="time"
                   tick={{ fontSize: isMobile ? 9 : 12 }}
