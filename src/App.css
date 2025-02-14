@@ -49,7 +49,7 @@
 }
 
 .custom-scrollbar-x::-webkit-scrollbar {
-  width: 4px; /* Set width of the scrollbar */
+  height: 12px;
 }
 
 .custom-scrollbar-x::-webkit-scrollbar-thumb {

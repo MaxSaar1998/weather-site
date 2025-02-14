@@ -21,6 +21,8 @@ function App() {
     const [forecastWeatherData, setForecastWeatherData] = useState(null);
     const [address, setAddress] = useState(null);
 
+    const [selectedDay, setSelectedDay] = useState(0);
+
 
 
     const [timeOfForecastFetch, setTimeofForecastFetch] = useState(null);
@@ -28,7 +30,7 @@ function App() {
     const isMobile = useIsMobile();
 
     // nearestHour is used to get the current weather data out of the forecasted data
-    var nearestHour;
+    let nearestHour;
 
     
     const hourlyWeatherMap = [];
@@ -145,7 +147,9 @@ function App() {
 
               <div className='flex flex-col items-end'>
                 <div>Your Location:</div>
-                <h1 className='text-3xl'>{}</h1>
+                { address && address.town &&
+                  <h1 className='text-xl'>{address.town}, {address.state}</h1>
+                }
                 {location.latitude && location.longitude ? (
                   <p className='text-sm text-gray-700 mt-1'>
                     Lat: {location.latitude.toFixed(1)}, Long: {location.longitude.toFixed(1)}
@@ -155,6 +159,37 @@ function App() {
                 )}
                   </div>
           </div>
+
+          <HorizontalLine />
+
+            {/* 15 Day list */}
+
+            {forecastWeatherData && forecastWeatherData.days &&
+              <div className='flex flex-row w-full custom-scrollbar-x overflow-x-auto pt-4 pb-8'>
+                {forecastWeatherData.days.slice(0, 15).map((element, index) => {
+                  console.log('index', index);
+                  // Render a weather card for each day
+                  return (
+                    <button
+                      onClick={() => {setSelectedDay(index)}}
+                      className={`px-1 py-1 rounded-md w-24 min-w-24 flex flex-col items-center mx-1
+                        ${(selectedDay == index) ? ' bg-gray-100' : ' bg-white'}
+                        ${console.log('selectedDay', selectedDay)}
+                      `} key={index}>
+                      {/* Hack to get date in local time instead of utc */}
+                      <div className='text-lg'>{dateToWeekday(new Date(element.datetime.replace(/-/g, "/")), true)}</div>
+                      <div className='text-xs text-gray-500 -mt-1'>{} Feb 5 </div>
+                      <WeatherIcon iconName={element.icon} />
+                      <div className='flex flex-row overflow-visible flex-nowrap justify-between'>
+                        <div className='text-sm text-nowrap'>H: {Math.round(element.tempmax)}°</div>
+                        <div className='text-sm text-nowrap text-gray-400 ml-1'>L: {Math.round(element.tempmin)}°</div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            }
+
           <HorizontalLine />
 
           {/* Forecast */}
@@ -175,27 +210,6 @@ function App() {
             </div>
             }
           </div>
-
-          <HorizontalLine />
-
-            {/* 8 Day list */}
-
-            {forecastWeatherData && forecastWeatherData.days &&
-              <div className='flex flex-row w-full custom-scrollbar-x overflow-x-auto pt-4 pb-8'>
-                {forecastWeatherData.days.slice(0, 15).map((element, index) => {
-                  // Render a weather card for each day
-                  return (
-                    <div className='px-2 py-1  rounded-md w-20 min-w-20 flex flex-col items-center mx-1' key={index}>
-                      {/* Hack to get date in local time instead of utc */}
-                      <div className='text-lg'>{dateToWeekday(new Date(element.datetime.replace(/-/g, "/")), true)}</div>
-                      <WeatherIcon iconName={element.icon} />
-                      <div className='text-sm'>H: {Math.round(element.tempmax)}°</div>
-                      <div className='text-sm text-gray-400 -mt-1'>L: {Math.round(element.tempmin)}°</div>
-                    </div>
-                  );
-                })}
-              </div>
-            }
 
           {error && <div className='text-red-500'>{error}</div>}
 
