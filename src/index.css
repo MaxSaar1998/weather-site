@@ -11,6 +11,13 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* VARIABLES */
+  --primary-color: #203354;
+  --secondary-color: #AF3E4D;
+  --background-light-color: #D7D7D7;
+  --background-dark-color: #a3a3a3;
+  --background-box-color: #ffffff;
 }
 
 a {
@@ -38,7 +45,7 @@ body {
 button {
   border-radius: 8px;
   /*border: 1px solid transparent;*/
-  padding: 0.6em 1.2em;
+  /*padding: 0.6em 1.2em;*/
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
