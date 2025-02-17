@@ -12,18 +12,21 @@ import Loading from './components/loading';
 import DayCard from './components/dayCard';
 
 import { AreaChart, XAxis, YAxis, Tooltip, Area } from 'recharts';
+
 import Navbar from './components/navbar';
 
 import LocationSelect from './pages/locationSelect';
 import formatWindDirection from './utils/formatWindDirection';
 
 import moment from 'moment-timezone';
+import formatTemp from './utils/formatTemp';
+import formatWindSpeed from './utils/formatWindSpeed';
 
 
 function App() {
 
     const [location, setLocation] = useState(null);
-    const [error, setError] = useState(null);
+    //const [error, setError] = useState(null);
     // For keeping track of the time that the current weather data was fetched
     const [forecastWeatherData, setForecastWeatherData] = useState(null);
     const [address, setAddress] = useState(null);
@@ -31,6 +34,8 @@ function App() {
     const [fetchingForecast, setFetchingForecast] = useState(false);
 
     const [screenWidth, setScreenWidth] = useState(window.innerWidth);
+
+    const [isMetric, setIsMetric] = useState(true);
 
 
 
@@ -43,19 +48,20 @@ function App() {
 
     
     const hourlyWeatherMap = [];
+
     // Populate the hourlyWeatherMap with the forecast weather data
     if (forecastWeatherData && forecastWeatherData.days) {
       // only use the weather for the selected day
       let day = forecastWeatherData.days[0];
       day.hours.forEach(hour => {
         hourlyWeatherMap.push({
-          moment: moment.tz(hour.datetimeEpoch * 1000, forecastWeatherData.timezone),
-          time: formatDate(new Date(hour.datetimeEpoch * 1000)),
+          time: moment.tz(hour.datetimeEpoch * 1000, forecastWeatherData.timezone).format('h:mm A'),
           temp: hour.temp,
           icon: hour.icon,
           weather: hour.conditions,
           humidity: hour.humidity,
           wind: hour.windspeed,
+          winddir: hour.winddir,
         });
       })
 
@@ -90,7 +96,7 @@ function App() {
       // 15 day forecast comes from visualcrossing
       setFetchingForecast(true);
       fetch(
-        `https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${latitude},${longitude}?unitGroup=metric&key=${apiKeys.visualCrossing}&cache=false`
+        `https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${latitude},${longitude}?unitGroup=metric&key=${apiKeys.visualCrossing}`
       )
       .then((res) => res.json())
       .then((data) => {
@@ -129,23 +135,22 @@ function App() {
 
           },
           (err) => {
-            setError(`Error: ${err.message}`);
+            console.log('Error: ', err.message);
           }
         );
       } else {
-        setError('Geolocation is not supported by this browser.');
+        console.log('Geolocation is not supported by this browser')
       }
     }, []);
 
     const currentWeather = forecastWeatherData?.days[0]?.hours[nearestHour];
 
-
   return (
     <div className='bg-gradient-to-br
       from-[var(--background-light-color)] to-[var(--background-dark-color)]
       min-h-screen
-      flex flex-col'>
-      <Navbar />
+      flex flex-col pt-12'>
+      <Navbar isMetric={isMetric} setIsMetric={(metric) => {setIsMetric(metric)}}/>
       <div className='max-w-2xl mx-auto flex-1 flex flex-col items-center w-full'>   
 
         {!location &&
@@ -184,47 +189,52 @@ function App() {
             {/* Current Weather Section */}
             <div className='px-4 py-2 rounded-md mt-4 md:mt-8 w-full max-w-full mx-auto shadow-lg bg-[var(--background-box-color)]'>
               <div className='flex flex-row items-center justify-between mx-auto'>
-                <h1 className='text-2xl font-bold'>Current Weather</h1>
+                <h1 className='text-xl xs:text-2xl font-bold'>Current Weather</h1>
                 <button
-                  className='text-blue-500 text-right'
+                  className='text-sm xs:text-base text-blue-500 text-right ml-0.5'
                   onClick={() => {setLocation(null)}}>Change Location {`>`}</button>
               </div>
-              <p>{address.town ? `${address.town}, `: (address.city ? `${address.city}, `: '')}{address.state}, {address.country}</p>
+              <p className='text-sm xs:text-base'>
+                {address.town ? `${address.town}, `: (address.city ? `${address.city}, `: '')}{address.state}, {address.country}</p>
 
               <div className='flex flex-row justify-between'>
                 <div className='text-gray-500'>
-                  <p>{moment.tz(timeOfForecastFetch, forecastWeatherData.timezone).format('h:mm A z')}</p>
-                  <p>{currentWeather.conditions}</p>
-                  <p>Humidity: {Math.round(currentWeather.humidity)}%</p>
+                  <p className='text-sm xs:text-base'>{moment.tz(timeOfForecastFetch, forecastWeatherData.timezone).format('h:mm A z')}</p>
+                  <p className='text-sm xs:text-base'>{currentWeather.conditions}</p>
+                  <p className='text-sm xs:text-base'>Humidity: {Math.round(currentWeather.humidity)}%</p>
                   {currentWeather.preciptype &&
-                    <p>Chance of {currentWeather.preciptype[0]}: {Math.round(currentWeather.precipprob)}%</p>
+                    <p className='text-sm xs:text-base'>Chance of {currentWeather.preciptype[0]}: {Math.round(currentWeather.precipprob)}%</p>
                   }
-                  <p>Wind: {Math.round(currentWeather.windspeed)}km/h {formatWindDirection(currentWeather.winddir)}</p>
+                  <p className='text-sm xs:text-base'>Wind: {formatWindSpeed(currentWeather.windspeed, isMetric)} {formatWindDirection(currentWeather.winddir)}</p>
                 </div>
                 <div className='flex flex-col items-center content-end'>
-                  <WeatherIcon iconName={currentWeather.icon} size={24} className='-mt-2' />
-                  <div className='text-2xl md:text-3xl font-bold -mt-1'>{Math.round(currentWeather.temp)}°C</div>
+                  <WeatherIcon iconName={currentWeather.icon} className='-mt-2 w-16 h-16 xs:w-24 xs:h-24' />
+                  <div className='text-xl xs:text-2xl md:text-3xl font-bold -mt-1'>{formatTemp(currentWeather.temp, isMetric)}</div>
                 </div>
               </div>
             </div>
 
-            {/* Forecast Section */}
+            {/* Hourly Temperature Section */}
             {forecastWeatherData &&
               <div className='px-4 py-2 rounded-md mt-4 md:mt-8 w-full max-w-full mx-auto shadow-lg bg-[var(--background-box-color)]'>
-                <h1 className='text-2xl md:text-2xl font-bold'>
+                <h1 className='text-xl xs:text-2xl md:text-2xl font-bold'>
                   Hourly Temperature
                 </h1>
-                  
                 {hourlyWeatherMap &&
                   <div className='w-full max-w-4xl py-4'>
-                  <AreaChart width={isMobile ? Math.min((screenWidth - 100), 600) : 600} height={isMobile ? 300 : 300} data={hourlyWeatherMap}>
+                  <AreaChart
+                    width={isMobile ? Math.min((screenWidth - 100), 600) : 600}
+                    height={isMobile ? Math.min((screenWidth * 9/16), 300) : 300}
+                    data={hourlyWeatherMap}
+
+                  >
                     <XAxis
                       dataKey="time"
                       tick={{ fontSize: isMobile ? 9 : 12 }}
                     />
                     <YAxis />
-                    <Tooltip content={<CustomToolTip />} />
-                    <Area type="monotone" dataKey="temp" stroke="#8884d8" fillOpacity={1} fill="url(#colorTemp)" />
+                    <Tooltip content={<CustomToolTip isMetric={isMetric} />} />
+                    <Area type="monotone" dataKey="temp" stroke="#8884d8" strokeWidth={4} fill="#ffffff" />
 
                   </AreaChart>
                 </div>
@@ -236,7 +246,7 @@ function App() {
               {forecastWeatherData && forecastWeatherData.days &&
 
                 <div className='px-4 py-2 rounded-md mt-4 md:mt-8 w-full mb-4 md:mb-8 max-w-full mx-auto shadow-lg bg-[var(--background-box-color)]'>
-                  <h1 className='text-2xl md:text-2xl font-bold mb-2'>
+                  <h1 className='text-xl xs:text-2xl md:text-2xl font-bold mb-2'>
                     15 Day Forecast
                   </h1>
                   <div className='flex flex-col'>
@@ -245,7 +255,7 @@ function App() {
                       return (
                         <>
                           <HorizontalLine/>
-                          <DayCard index={index} day={element} timezone={forecastWeatherData.timezone}/>
+                          <DayCard index={index} day={element} timezone={forecastWeatherData.timezone} isMetric={isMetric}/>
                         </>
                       );
                     })}
@@ -256,10 +266,20 @@ function App() {
               {/* Credits Section */}
               {/* TODO: add credits to OpenStreetMap, nominatum, geocode*/}
               <div className='flex flex-col items-center mb-8 md:mb-12 mt-4 md:mt-8 '>
-                <p>This website uses the following APIs:</p>
-                <a target='_blank' href='https://geocode.maps.co/'>geocode.maps.co</a>
-                <a target='_blank' href='https://www.visualcrossing.com/weather-api/'>Visual Crossing</a>
-                <a target='_blank' href='https://nominatim.org/'>Nominatim</a>
+                <p>Weather and location data from:</p>
+                <a target='_blank'
+                  href='https://geocode.maps.co/'
+                  rel="noopener noreferrer"
+                  >geocode.maps.co
+                </a>
+                <a target='_blank'
+                  href='https://www.visualcrossing.com/weather-api/'
+                  rel="noopener noreferrer"
+                >Visual Crossing</a>
+                <a target='_blank'
+                  href='https://www.openstreetmap.org/'
+                  rel="noopener noreferrer"
+                >OpenStreetMap</a>
               </div>              
           </div>
         }

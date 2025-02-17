@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 import { TextField } from '@mui/material';
 
 import InputAdornment from '@mui/material/InputAdornment';
-import IconButton from '@mui/material/IconButton';
+//import IconButton from '@mui/material/IconButton';
 import SearchIcon from '@mui/icons-material/Search';
 
 
@@ -16,7 +16,7 @@ const LocationSelect = ({handleSearch}) => {
         setTextValue(e.target.value);
     };
 
-    const handleKeyPress = (e) => {
+    const handleKeyPress = (event) => {
         if (event.key === 'Enter') {
             // First do a basic input check
             if(textValue.length <= 1){
@@ -24,6 +24,14 @@ const LocationSelect = ({handleSearch}) => {
             } else {
                 handleSearch(textValue);
             }
+        }
+    }
+
+    const handleSearchPress = () => {
+        if(textValue.length <= 1){
+            setInputError('Location must be at least 2 characters');
+        } else {
+            handleSearch(textValue);
         }
     }
 
@@ -40,7 +48,9 @@ const LocationSelect = ({handleSearch}) => {
                 InputProps={{
                     endAdornment: (
                       <InputAdornment position="end">
-                        <SearchIcon />
+                        <button onClick={handleSearchPress}>
+                            <SearchIcon />
+                        </button>
                       </InputAdornment>
                     ),
                   }}

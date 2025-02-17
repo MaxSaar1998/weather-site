@@ -8,7 +8,7 @@ import sun from "../assets/sun96.png";
 import snow from "../assets/snow96.png";
 
 
-const weatherIcon = ({iconName, size, className}) => {
+const weatherIcon = ({iconName, className}) => {
     var imgsrc = '';
     switch (iconName) {
         case 'cloudy':
@@ -55,15 +55,9 @@ const weatherIcon = ({iconName, size, className}) => {
         
     }
 
-    if(size){
-        return <img
-            src={imgsrc}
-            className={`w-${size} h-${size} ` + className}
-        />;
-    }
     return <img
         src={imgsrc}
-        className={`w-12 h-12 ` + className}
+        className={className}
     />;
 } 
 
