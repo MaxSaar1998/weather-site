@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import './App.css'
 import apiKeys from '../apiKeys.json';
 
-import { formatDate, getFormattedDate, getMonthAndDay } from './utils/formatDate';
+import { formatDate } from './utils/formatDate';
 import useIsMobile from './utils/useIsMobile';
 
 import HorizontalLine from './components/horizontalLine';
@@ -15,7 +15,6 @@ import { AreaChart, XAxis, YAxis, Tooltip, Area } from 'recharts';
 import Navbar from './components/navbar';
 
 import LocationSelect from './pages/locationSelect';
-import { dateToTime } from './utils/dateToTime';
 import formatWindDirection from './utils/formatWindDirection';
 
 import moment from 'moment-timezone';
@@ -190,7 +189,7 @@ function App() {
                   className='text-blue-500 text-right'
                   onClick={() => {setLocation(null)}}>Change Location {`>`}</button>
               </div>
-              <p>{address.town ? `${address.town}, `: (address.city ? `${address.city}, `: '')}{address.state}</p>
+              <p>{address.town ? `${address.town}, `: (address.city ? `${address.city}, `: '')}{address.state}, {address.country}</p>
 
               <div className='flex flex-row justify-between'>
                 <div className='text-gray-500'>
@@ -218,7 +217,7 @@ function App() {
                   
                 {hourlyWeatherMap &&
                   <div className='w-full max-w-4xl py-4'>
-                  <AreaChart width={isMobile ? (screenWidth - 100) : 600} height={isMobile ? 300 : 300} data={hourlyWeatherMap}>
+                  <AreaChart width={isMobile ? Math.min((screenWidth - 100), 600) : 600} height={isMobile ? 300 : 300} data={hourlyWeatherMap}>
                     <XAxis
                       dataKey="time"
                       tick={{ fontSize: isMobile ? 9 : 12 }}
@@ -236,7 +235,7 @@ function App() {
 
               {forecastWeatherData && forecastWeatherData.days &&
 
-                <div className='px-4 py-2 rounded-md mt-4 md:mt-8 w-full mb-4 max-w-full mx-auto shadow-lg bg-[var(--background-box-color)]'>
+                <div className='px-4 py-2 rounded-md mt-4 md:mt-8 w-full mb-4 md:mb-8 max-w-full mx-auto shadow-lg bg-[var(--background-box-color)]'>
                   <h1 className='text-2xl md:text-2xl font-bold mb-2'>
                     15 Day Forecast
                   </h1>
@@ -246,7 +245,7 @@ function App() {
                       return (
                         <>
                           <HorizontalLine/>
-                          <DayCard index={index} day={element}/>
+                          <DayCard index={index} day={element} timezone={forecastWeatherData.timezone}/>
                         </>
                       );
                     })}
@@ -254,11 +253,14 @@ function App() {
                 </div>
               }
 
-          
-
-
-            {error && <div className='text-red-500'>{error}</div>}
-              
+              {/* Credits Section */}
+              {/* TODO: add credits to OpenStreetMap, nominatum, geocode*/}
+              <div className='flex flex-col items-center mb-8 md:mb-12 mt-4 md:mt-8 '>
+                <p>This website uses the following APIs:</p>
+                <a target='_blank' href='https://geocode.maps.co/'>geocode.maps.co</a>
+                <a target='_blank' href='https://www.visualcrossing.com/weather-api/'>Visual Crossing</a>
+                <a target='_blank' href='https://nominatim.org/'>Nominatim</a>
+              </div>              
           </div>
         }
       </div>
