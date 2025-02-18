@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react'
 import './App.css'
-import apiKeys from '../apiKeys.json';
-
-import { formatDate } from './utils/formatDate';
+//import 'dotenv/config';
 import useIsMobile from './utils/useIsMobile';
 
 import HorizontalLine from './components/horizontalLine';
@@ -23,7 +21,13 @@ import formatTemp from './utils/formatTemp';
 import formatWindSpeed from './utils/formatWindSpeed';
 
 
+//const openWeatherApiKey = process.env.openWeather;
+
+
 function App() {
+
+    const geocodeApiKey = import.meta.env.VITE_GEOCODE_API_KEY;
+    const visualCrossingApiKey = import.meta.env.VITE_VISUAL_CROSSING_API_KEY;
 
     const [location, setLocation] = useState(null);
     //const [error, setError] = useState(null);
@@ -96,7 +100,7 @@ function App() {
       // 15 day forecast comes from visualcrossing
       setFetchingForecast(true);
       fetch(
-        `https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${latitude},${longitude}?unitGroup=metric&key=${apiKeys.visualCrossing}`
+        `https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${latitude},${longitude}?unitGroup=metric&key=${visualCrossingApiKey}`
       )
       .then((res) => res.json())
       .then((data) => {
@@ -159,7 +163,7 @@ function App() {
             // Fetch the latitude and longitude from geocode
             const formattedTerm = term.replace(/ /g, "+");
             fetch(
-              `https://geocode.maps.co/search?q=${formattedTerm}&api_key=${apiKeys.geocode}`
+              `https://geocode.maps.co/search?q=${formattedTerm}&api_key=${geocodeApiKey}`
             )
             .then((res) => res.json())
             .then((data) => {
